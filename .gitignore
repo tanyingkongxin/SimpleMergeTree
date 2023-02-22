@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+hpx-source
+build
+
+.vscode
