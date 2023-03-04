@@ -1,7 +1,7 @@
 #!/bin/bash
 
 APP_PATH=build/simple_ct
-APP_OPTIONS=test_input_path
+APP_OPTIONS=data/bonsai_256x256x256_uint8.mhd
 
 export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH
 

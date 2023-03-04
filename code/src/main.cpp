@@ -51,7 +51,7 @@ int hpx_main(hpx::program_options::variables_map& vm){
     timer.restart();
     std::vector<hpx::shared_future<void>> initFutures;
     for(hpx::id_type treeConstructor: treeConstructors){
-        initFutures.push_back(hpx::async<TreeConstructor::init_action>(treeConstructor, options));
+        initFutures.push_back(hpx::async<TreeConstructor::init_action>(treeConstructor, treeConstructors, input, options));
     }
     hpx::lcos::wait_all(initFutures);
     std::cout << "Initialization: " << timer.elapsed() << " s\n"; 

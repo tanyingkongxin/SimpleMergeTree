@@ -1,6 +1,6 @@
 #pragma once
 
-#include <hpx/hpx.hpp>
+#include "DataManager.h"
 #include <hpx/serialization/access.hpp>
 
 class Options{
@@ -21,9 +21,23 @@ private:
 
 class TreeConstructor : public hpx::components::component_base<TreeConstructor> {
 public:
-    void init(const Options& options);
+    TreeConstructor(){}
+
+    TreeConstructor(const TreeConstructor& ) = delete;
+    TreeConstructor& operator=(const TreeConstructor& ) = delete;
+
+    // ~TreeConstructor(){}
+
+    void init(const std::vector<hpx::id_type>& treeConstructors, const std::string& input, const Options& options);
     // 每个能够被远程调用的成员函数都必须封装成为 component action
     HPX_DEFINE_COMPONENT_ACTION(TreeConstructor, init);
+
+private:
+    uint32_t index;
+    Options options;
+    std::vector<hpx::id_type> treeConstructors;
+
+    DataManager* dataManager;
 };
 
 HPX_REGISTER_ACTION_DECLARATION(TreeConstructor::init_action, treeConstructor_init_action);

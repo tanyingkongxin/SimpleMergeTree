@@ -33,6 +33,6 @@ cmake --build .
 
 # rm -rf ../results/*
 
-./simple_ct trunkskip test_input_path
+./simple_ct trunkskip ../data/bonsai_256x256x256_uint8.mhd
 
 popd
