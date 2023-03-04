@@ -1,6 +1,7 @@
 #include "TreeConstructor.h"
 #include <boost/algorithm/string.hpp>
 
+#include "Log.h"
 #include "RawManager.h"
 
 HPX_REGISTER_COMPONENT_MODULE();
@@ -15,8 +16,8 @@ HPX_REGISTER_ACTION(TreeConstructor_type::wrapped_type::init_action, treeConstru
 
 
 void TreeConstructor::init(const std::vector<hpx::id_type>& treeConstructors, const std::string& input, const Options& options){
-    // output all options
-    std::cout << "trunkskip: " << (options.trunkskip ? "true" : "false") << "\n";
+
+    this->options = options;
 
     // Store list of tree constructor components and determine index of this component
     this->treeConstructors = treeConstructors;
@@ -39,6 +40,6 @@ void TreeConstructor::init(const std::vector<hpx::id_type>& treeConstructors, co
         this->dataManager->init(this->index, this->treeConstructors.size());
     }
     else{
-        std::cout << "Error: unknow file format\n";
+        LogError() << "Error: unknow file format\n";
     }
 }

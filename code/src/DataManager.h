@@ -181,7 +181,6 @@ protected:
         this->blockData = new T[numVerticesWithGhost];
         if (this->blockData == nullptr) {
             // LogError().tag(std::to_string(blockIndex)) << "Failed to allocate block memory";
-            std::cout << "allocate memory failed\n";
             return;
         }
 
@@ -195,18 +194,18 @@ protected:
 
         // Print info
         if (blockIndex == 0) {
-            std::cout  << "Grid size: (" << this->gridSize.x << ", " << this->gridSize.y << ", " << this->gridSize.z << ")" << std::endl;
-            std::cout << "Num blocks: (" << this->numBlocks.x << ", " << this->numBlocks.y << ", " << this->numBlocks.z << ")" << std::endl;
-            std::cout << "Vertices: " << this->getNumVertices() << std::endl;
+            Log() << "Grid size: (" << this->gridSize.x << ", " << this->gridSize.y << ", " << this->gridSize.z << ")";
+            Log() << "Num blocks: (" << this->numBlocks.x << ", " << this->numBlocks.y << ", " << this->numBlocks.z << ")";;
+            Log() << "Vertices: " << this->getNumVertices();
         }
-        std::cout << std::to_string(blockIndex) << " Block index: (" << this->blockIndex3D.x << ", " << this->blockIndex3D.y << ", " << this->blockIndex3D.z << ")" << std::endl;
-        std::cout << std::to_string(blockIndex) << " Block offset: (" << this->blockOffsetWithGhost.x << ", " << this->blockOffsetWithGhost.y << ", " << this->blockOffsetWithGhost.z << ")" << std::endl;
-        std::cout << std::to_string(blockIndex) << " Block size: (" << this->blockSizeWithGhost.x << ", " << this->blockSizeWithGhost.y << ", " << this->blockSizeWithGhost.z << ")" << std::endl;
-        std::cout << std::to_string(blockIndex) << " Vertices (local): " << this->getNumVerticesLocal(false) << std::endl;
-        std::cout << std::to_string(blockIndex) << " Vertices (ghost): " << this->getNumVerticesLocal(true) - this->getNumVerticesLocal(false) << std::endl;
+        Log().tag(std::to_string(blockIndex)) << "Block index: (" << this->blockIndex3D.x << ", " << this->blockIndex3D.y << ", " << this->blockIndex3D.z << ")";
+        Log().tag(std::to_string(blockIndex)) << "Block offset: (" << this->blockOffsetWithGhost.x << ", " << this->blockOffsetWithGhost.y << ", " << this->blockOffsetWithGhost.z << ")";
+        Log().tag(std::to_string(blockIndex)) << "Block size: (" << this->blockSizeWithGhost.x << ", " << this->blockSizeWithGhost.y << ", " << this->blockSizeWithGhost.z << ")";
+        Log().tag(std::to_string(blockIndex)) << "Vertices (local): " << this->getNumVerticesLocal(false);
+        Log().tag(std::to_string(blockIndex)) << "Vertices (ghost): " << this->getNumVerticesLocal(true) - this->getNumVerticesLocal(false);
 
-        std::cout << std::to_string(blockIndex) << " Values: " << byteString(numVerticesWithGhost * sizeof(float)) << std::endl;
-        std::cout << std::to_string(blockIndex) << " Mask: " << byteString(numVerticesWithGhost * sizeof(uint8_t)) << std::endl;
+        Log().tag(std::to_string(blockIndex)) << "Values: " << byteString(numVerticesWithGhost * sizeof(float));
+        Log().tag(std::to_string(blockIndex)) << "Mask: " << byteString(numVerticesWithGhost * sizeof(uint8_t));
     }
 
     virtual glm::uvec3 getSize() = 0;

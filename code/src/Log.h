@@ -13,6 +13,201 @@
 #include <glm/glm.hpp>
 #include <hpx/hpx.hpp>
 
+
+class Log {
+public:
+    enum class Level {
+        DEBUG_LEVEL,
+        INFO_LEVEL,
+        WARNING_LEVEL,
+        ERROR_LEVEL,
+        FILE_LEVEL
+    };
+
+public:
+    static std::ofstream outfile;
+    static hpx::lcos::local::mutex outlock;
+
+public:
+    Log(Level level = Level::INFO_LEVEL)
+        : level(level)
+    {
+        this->time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        this->time += 8 * 60 * 60; // convert to UTC+8
+    }
+
+    virtual ~Log()
+    {
+        std::ostream* out = &std::cout;
+        std::lock_guard<hpx::lcos::local::mutex> lock(Log::outlock);
+        if (this->level == Level::FILE_LEVEL){
+            out = &Log::outfile;
+        }
+
+        std::string s = this->buffer.str();
+
+        if (this->showTime) {
+            struct std::tm* ptm = std::localtime(&this->time);
+            char buf[80];
+            strftime(buf, sizeof(buf), "%T", ptm);
+            *out << "[" << std::string(buf) << "] ";
+        }
+
+        if (this->showTag.size() > 0) {
+            *out << "[" << this->showTag << "] ";
+        }
+
+        if (this->level == Level::WARNING_LEVEL)
+            *out << "Warning: ";
+        else if (this->level == Level::ERROR_LEVEL)
+           *out << "Error: ";
+
+        *out << s;
+
+        if (this->newLine)
+            *out << std::endl;
+        else
+            out->flush();
+    }
+
+    Log& hideTime()
+    {
+        this->showTime = false;
+        return *this;
+    }
+
+    Log& tag(const std::string& tag)
+    {
+        this->showTag = tag;
+        return *this;
+    }
+
+    Log& noNewLine()
+    {
+        this->newLine = false;
+        return *this;
+    }
+
+    // std::vector
+    template <typename T>
+    Log& operator<<(const std::vector<T>& v)
+    {
+        for (int i = 0; i < v.size(); ++i) {
+            *this << v[i];
+            if (i < v.size() - 1)
+                *this << " ";
+        }
+
+        return *this;
+    }
+
+    // Everything else...
+    template <typename T>
+    Log& operator<<(const T& t)
+    {
+        this->buffer << t;
+        return *this;
+    }
+
+    /**
+     * @brief Prints a progress bar
+     * @param progress
+     */
+    void printProgress(float progress)
+    {
+        int barWidth = 60;
+
+        *this << "[";
+        int pos = barWidth * progress;
+        for (int i = 0; i < barWidth; ++i) {
+            if (i < pos)
+                *this << "=";
+            else if (i == pos)
+                *this << ">";
+            else
+                *this << " ";
+        }
+        *this << "] " << int(progress * 100.0) << " %\r";
+    }
+
+    void clearLine(int chars = 80)
+    {
+        this->newLine = false;
+
+        *this << "\r";
+
+        for (int i = 0; i < chars; ++i)
+            *this << " ";
+
+        *this << "\r";
+    }
+
+private:
+    bool newLine = true;
+
+    std::time_t time;
+    bool showTime = true;
+
+    std::string showTag;
+
+    Level level;
+    std::stringstream buffer;
+};
+
+// Error logging
+class LogError : public Log {
+public:
+    LogError()
+        : Log(Level::ERROR_LEVEL)
+    {
+    }
+};
+
+// Warning logging
+class LogWarning : public Log {
+public:
+    LogWarning()
+        : Log(Level::WARNING_LEVEL)
+    {
+    }
+};
+
+// Info logging
+class LogInfo : public Log {
+public:
+    LogInfo()
+        : Log(Level::INFO_LEVEL)
+    {
+    }
+};
+
+class LogFile : public Log {
+public:
+    LogFile()
+        : Log(Level::FILE_LEVEL)
+    {
+    }
+};
+
+// Debug logging
+#ifdef ENABLE_DEBUG_LOGGING
+class LogDebug : public Log {
+public:
+    LogDebug()
+        : Log(Level::DEBUG_LEVEL)
+    {
+    }
+};
+#else
+class LogDebug {
+public:
+    template <typename T>
+    LogDebug& operator<<(const T&) { return *this; }
+
+    LogDebug& tag(const std::string&) { return *this; }
+};
+#endif
+
 // Converts number of bytes to a readable string representation
 inline std::string byteString(size_t n, bool addSuffix = true)
 {

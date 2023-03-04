@@ -6,7 +6,11 @@
 #include <hpx/runtime_distributed/find_localities.hpp>
 #include <hpx/timing/high_resolution_timer.hpp>
 
+#include "Log.h"
 #include "TreeConstructor.h"
+
+std::ofstream Log::outfile;
+hpx::lcos::local::mutex Log::outlock;
 
 int hpx_main(hpx::program_options::variables_map& vm){
 
@@ -54,7 +58,7 @@ int hpx_main(hpx::program_options::variables_map& vm){
         initFutures.push_back(hpx::async<TreeConstructor::init_action>(treeConstructor, treeConstructors, input, options));
     }
     hpx::lcos::wait_all(initFutures);
-    std::cout << "Initialization: " << timer.elapsed() << " s\n"; 
+    LogInfo() << "Initialization: " << timer.elapsed() << " s"; 
 
     return hpx::finalize();
 }
