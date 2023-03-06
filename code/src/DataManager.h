@@ -1,9 +1,11 @@
 #pragma once
 
+
 #include <glm/glm.hpp>
 #include <hpx/hpx.hpp>
 #include <sys/types.h>
 
+#include "Value.h"
 #include "Log.h"
 
 const uint64_t INVALID_VERTEX = std::numeric_limits<uint64_t>::max();
@@ -21,6 +23,16 @@ public:
     virtual uint64_t getNumVertices() const = 0;
     virtual uint64_t getNumVerticesLocal(bool withGhost = false) const = 0;
 
+    // return the index of all minima in local data
+    virtual std::vector<uint64_t> getLocalMinima() const = 0;
+    // virtual uint64_t getLocalVertex(uint64_t idx) const = 0;
+    // virtual std::vector<uint64_t> getLocalVertices() const = 0;
+
+    // input: v 的高 10 位表示在哪个 block，低 54 位表示在 local block (with ghost) 的 index
+    virtual bool isMinimum(uint64_t v) const = 0;
+    virtual bool isGhost(uint64_t v) const = 0;
+    virtual bool isLocal(uint64_t v) const = 0;
+
     virtual void init(uint32_t blockIndex, uint32_t numBlocks) = 0;
 
 private:
@@ -33,10 +45,8 @@ private:
 template<typename T>
 class RegularGridManager : public DataManager {
 public:
-    // case 1 = default;
-    // case 2 empty implementation
+
     virtual ~ RegularGridManager(){
-        // TODO 
         if (this->blockData){
             delete[] this->blockData;
         }
@@ -55,6 +65,55 @@ protected:
             return this->blockSizeWithGhost.x * this->blockSizeWithGhost.y * this->blockSizeWithGhost.z;
 
         return this->blockSize.x * this->blockSize.y * this->blockSize.z;
+    }
+
+    
+    virtual std::vector<uint64_t> getLocalMinima() const {
+        std::vector<uint64_t> localMinima;
+        // with ghost
+        uint64_t numLocalVertices = this->getNumVerticesLocal(true);
+        for(uint64_t v = 0;v < numLocalVertices; v++){
+            uint64_t vv = v | this->blockIndex;
+            if(isMinimum(vv) && !isGhost(vv)){
+                localMinima.push_back(vv);
+            }
+        }
+        return localMinima;
+    }
+    
+
+    bool isGhost(uint64_t v) const{
+        if (v == INVALID_VERTEX)
+            return false;
+        const uint8_t mask = this->blockMask[v & VERTEX_INDEX_MASK];
+        if (mask & 0x80)
+            return true;
+        return false;
+    }
+
+    /**
+     * @brief Checks if the given vertex is a local minimum.
+     * @param v
+     * @return
+     */
+    bool isMinimum(uint64_t v) const{
+        uint64_t neighbors[6];
+        this->getNeighbors(v, neighbors);
+
+        const Value<T> value = this->getValue(v);
+
+        for (uint32_t i = 0; i < 6; ++i) {
+            const uint64_t neighbor = neighbors[i];
+
+            if (neighbor != INVALID_VERTEX && this->getValue(neighbor) < value)
+                return false;
+        }
+
+        return true;
+    }
+
+    bool isLocal(uint64_t v) const{
+        return (this->blockIndex == (v & BLOCK_INDEX_MASK));
     }
 
     virtual void init(uint32_t blockIndex, uint32_t numBlocks){
@@ -211,6 +270,58 @@ protected:
     virtual glm::uvec3 getSize() = 0;
     virtual void readBlock(const glm::uvec3& offset, const glm::uvec3& size, T* dataOut) = 0;
     virtual void release() = 0;
+
+private:
+    /**
+     * @brief Returns the value of the vertex with given id.
+     * @param v
+     * @return
+     */
+    Value<T> getValue(uint64_t v) const
+    {
+
+        if (v == INVALID_VERTEX){
+            return std::numeric_limits<Value<T>>::max();
+        }
+
+        assert((v & BLOCK_INDEX_MASK) == this->blockIndex);
+
+        const uint64_t i = v & VERTEX_INDEX_MASK;
+        return Value<T>(this->blockData[i], v);
+    }
+
+    /**
+     * @brief Returns the neighbors of the vertex with given id.
+     * @param v We know this is only called for local non-ghost vertices.
+     * @param neighborsOut Can contain invalid indices
+     * @return (Maximum) Number of neighbors
+     */
+    uint32_t getNeighbors(uint64_t v, uint64_t* neighborsOut) const
+    {
+        assert((v & BLOCK_INDEX_MASK) == this->blockIndex);
+
+        const uint8_t mask = this->blockMask[v & VERTEX_INDEX_MASK];
+
+        neighborsOut[0] = (mask & 0x20) ? (v - 1) : INVALID_VERTEX;
+        neighborsOut[1] = (mask & 0x10) ? (v + 1) : INVALID_VERTEX;
+        neighborsOut[2] = (mask & 0x8) ? (v - this->blockSizeWithGhost.x) : INVALID_VERTEX;
+        neighborsOut[3] = (mask & 0x4) ? (v + this->blockSizeWithGhost.x) : INVALID_VERTEX;
+        neighborsOut[4] = (mask & 0x2) ? (v - this->blockSizeWithGhost.x * this->blockSizeWithGhost.y) : INVALID_VERTEX;
+        neighborsOut[5] = (mask & 0x1) ? (v + this->blockSizeWithGhost.x * this->blockSizeWithGhost.y) : INVALID_VERTEX;
+
+        return 6;
+    }
+
+    uint64_t getNeighbor(uint64_t v, int i) const
+    {
+        if (i == 0) return (this->blockMask[v & VERTEX_INDEX_MASK] & 0x20) ? (v - 1) : INVALID_VERTEX;
+        if (i == 1) return (this->blockMask[v & VERTEX_INDEX_MASK] & 0x10) ? (v + 1) : INVALID_VERTEX;
+        if (i == 2) return (this->blockMask[v & VERTEX_INDEX_MASK] & 0x8) ? (v - this->blockSizeWithGhost.x) : INVALID_VERTEX;
+        if (i == 3) return (this->blockMask[v & VERTEX_INDEX_MASK] & 0x4) ? (v + this->blockSizeWithGhost.x) : INVALID_VERTEX;
+        if (i == 4) return (this->blockMask[v & VERTEX_INDEX_MASK] & 0x2) ? (v - this->blockSizeWithGhost.x * this->blockSizeWithGhost.y) : INVALID_VERTEX;
+        if (i == 5) return (this->blockMask[v & VERTEX_INDEX_MASK] & 0x1) ? (v + this->blockSizeWithGhost.x * this->blockSizeWithGhost.y) : INVALID_VERTEX;
+        return INVALID_VERTEX;
+    }
 
 private:
 

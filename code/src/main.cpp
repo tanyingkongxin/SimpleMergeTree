@@ -60,6 +60,20 @@ int hpx_main(hpx::program_options::variables_map& vm){
     hpx::lcos::wait_all(initFutures);
     LogInfo() << "Initialization: " << timer.elapsed() << " s"; 
 
+    /* Construction */
+    timer.restart();
+    std::vector<hpx::shared_future<uint64_t>> constructFutures;
+    for (hpx::id_type treeConstructor : treeConstructors){
+        constructFutures.push_back(hpx::async<TreeConstructor::construct_action>(treeConstructor));
+    }
+    hpx::lcos::wait_all(constructFutures);
+
+    uint64_t finalArcCount = 0ul;
+    for (hpx::shared_future<uint64_t> c : constructFutures){
+        finalArcCount += c.get();
+    }
+    LogInfo() << "Construction: " << timer.elapsed() << " s; Total Arcs: " << finalArcCount;
+
     return hpx::finalize();
 }
 

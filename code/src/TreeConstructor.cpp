@@ -13,7 +13,7 @@ HPX_REGISTER_COMPONENT(TreeConstructor_type, TreeConstructor);
 // HPX_REGISTER_ACTION(init_action);
 
 HPX_REGISTER_ACTION(TreeConstructor_type::wrapped_type::init_action, treeConstructor_init_action);
-
+HPX_REGISTER_ACTION(TreeConstructor_type::wrapped_type::construct_action, treeConstructor_construct_action);
 
 void TreeConstructor::init(const std::vector<hpx::id_type>& treeConstructors, const std::string& input, const Options& options){
 
@@ -42,4 +42,27 @@ void TreeConstructor::init(const std::vector<hpx::id_type>& treeConstructors, co
     else{
         LogError() << "Error: unknow file format\n";
     }
+}
+
+uint64_t TreeConstructor::construct(){
+    hpx::chrono::high_resolution_timer timer;
+    /* search local minima */
+    std::vector<uint64_t> minimaList = this->dataManager->getLocalMinima();
+    numMinima = minimaList.size();
+    LogInfo() << minimaList.size();
+    
+    // TODO: process minimum
+    // for(uint64_t m: minimaList){
+        // hpx::apply(this->executor_start_sweeps, TreeConstructor::startSweep_action(), this->get_id(), v, true);
+    // }
+
+    if (numMinima == 0l)
+        numMinima = std::numeric_limits<std::int64_t>::max();
+
+    LogInfo() << "termination wait finish!";
+    Log().tag(std::to_string(this->index)) << "num of minima: " << numMinima;
+
+
+    // TODO
+    return 0;
 }

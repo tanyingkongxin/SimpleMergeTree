@@ -21,7 +21,7 @@ private:
 
 class TreeConstructor : public hpx::components::component_base<TreeConstructor> {
 public:
-    TreeConstructor(){}
+    TreeConstructor():dataManager(nullptr), numMinima(0){}
 
     TreeConstructor(const TreeConstructor& ) = delete;
     TreeConstructor& operator=(const TreeConstructor& ) = delete;
@@ -32,12 +32,18 @@ public:
     // 每个能够被远程调用的成员函数都必须封装成为 component action
     HPX_DEFINE_COMPONENT_ACTION(TreeConstructor, init);
 
+    uint64_t construct();
+    HPX_DEFINE_COMPONENT_ACTION(TreeConstructor, construct);
+
 private:
     uint32_t index;
     Options options;
     std::vector<hpx::id_type> treeConstructors;
 
     DataManager* dataManager;
+
+    int64_t numMinima;
 };
 
 HPX_REGISTER_ACTION_DECLARATION(TreeConstructor::init_action, treeConstructor_init_action);
+HPX_REGISTER_ACTION_DECLARATION(TreeConstructor::construct_action, treeConstructor_construct_action);
