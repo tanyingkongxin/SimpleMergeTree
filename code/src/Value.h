@@ -5,6 +5,11 @@
 
 #include <hpx/hpx.hpp>
 
+enum ValueType{
+    FLOAT = 0,
+    CHAR = 1
+};
+
 template<typename T>
 class Value {
 public:

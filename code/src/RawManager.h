@@ -1,5 +1,6 @@
 #pragma once
 #include "DataManager.h"
+#include "Value.h"
 #include "vtkImageAlgorithm.h"
 
 #include <vtkImageData.h>

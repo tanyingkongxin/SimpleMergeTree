@@ -28,10 +28,16 @@ public:
     // virtual uint64_t getLocalVertex(uint64_t idx) const = 0;
     // virtual std::vector<uint64_t> getLocalVertices() const = 0;
 
+    // return true if v1.value < v2.value
+    virtual bool less(uint64_t v1, uint64_t v2) const = 0;
+
     // input: v 的高 10 位表示在哪个 block，低 54 位表示在 local block (with ghost) 的 index
     virtual bool isMinimum(uint64_t v) const = 0;
     virtual bool isGhost(uint64_t v) const = 0;
     virtual bool isLocal(uint64_t v) const = 0;
+
+    virtual uint64_t getNeighbor(uint64_t v, int i) const = 0;
+    virtual uint32_t getNeighbors(uint64_t v, uint64_t* neighborsOut) const = 0;
 
     virtual void init(uint32_t blockIndex, uint32_t numBlocks) = 0;
 
@@ -50,6 +56,27 @@ public:
         if (this->blockData){
             delete[] this->blockData;
         }
+    }
+
+        /**
+     * @brief Returns the value of the vertex with given id.
+     * @param v
+     * @return
+     */
+    Value<T> getValue(uint64_t v) const{
+
+        if (v == INVALID_VERTEX){
+            return std::numeric_limits<Value<T>>::max();
+        }
+
+        assert((v & BLOCK_INDEX_MASK) == this->blockIndex);
+
+        const uint64_t i = v & VERTEX_INDEX_MASK;
+        return Value<T>(this->blockData[i], v);
+    }
+
+    bool less(uint64_t v1, uint64_t v2) const{
+        return getValue(v1) < getValue(v2);
     }
 
 protected:
@@ -271,24 +298,6 @@ protected:
     virtual void readBlock(const glm::uvec3& offset, const glm::uvec3& size, T* dataOut) = 0;
     virtual void release() = 0;
 
-private:
-    /**
-     * @brief Returns the value of the vertex with given id.
-     * @param v
-     * @return
-     */
-    Value<T> getValue(uint64_t v) const
-    {
-
-        if (v == INVALID_VERTEX){
-            return std::numeric_limits<Value<T>>::max();
-        }
-
-        assert((v & BLOCK_INDEX_MASK) == this->blockIndex);
-
-        const uint64_t i = v & VERTEX_INDEX_MASK;
-        return Value<T>(this->blockData[i], v);
-    }
 
     /**
      * @brief Returns the neighbors of the vertex with given id.
